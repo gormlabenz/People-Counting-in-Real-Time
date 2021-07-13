@@ -1,20 +1,24 @@
-from mylib.centroidtracker import CentroidTracker
-from mylib.trackableobject import TrackableObject
-from imutils.video import VideoStream
-from imutils.video import FPS
-from mylib.mailer import Mailer
-from mylib import config, thread
-import time
-import schedule
-import csv
-import numpy as np
 import argparse
-import imutils
-import time
-import dlib
-import cv2
+import csv
 import datetime
+import logging
+import time
 from itertools import zip_longest
+
+import cv2
+import dlib
+import imutils
+import numpy as np
+import schedule
+from imutils.video import FPS, VideoStream
+from PIL import Image
+
+from mylib import config, epd4in2, thread
+from mylib.centroidtracker import CentroidTracker
+from mylib.mailer import Mailer
+from mylib.trackableobject import TrackableObject
+
+logging.basicConfig(level=logging.DEBUG)
 
 t0 = time.time()
 
@@ -24,6 +28,17 @@ COLOR_LINE = (0, 0, 255)
 
 
 def run():
+    # init paper
+    logging.info("epd4in2 Demo")
+
+    epd = epd4in2.EPD()
+    logging.info("init and Clear")
+    epd.init()
+    epd.Clear()
+    time.sleep(1)
+
+    # Drawing on the image
+    logging.info("Drawing")
 
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
@@ -108,7 +123,7 @@ def run():
         # resize the frame to have a maximum width of 500 pixels (the
         # less data we have, the faster we can process it), then convert
         # the frame from BGR to RGB for dlib
-        frame = imutils.resize(frame, width=500)
+        frame = imutils.resize(frame, width=epd.width, height=epd.height)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img_grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame_thres = cv2.adaptiveThreshold(
@@ -310,7 +325,10 @@ def run():
                 wr.writerows(export_data)
 
         # show the output frame
-        cv2.imshow("Real-Time Monitoring/Analysis Window", frame_out)
+        # cv2.imshow("Real-Time Monitoring/Analysis Window", frame_out)
+        frame_out_pil = Image.fromarray(frame_out)
+        if x:
+            epd.display(epd.getbuffer(frame_out_pil))
         key = cv2.waitKey(1) & 0xFF
 
         # if the `q` key was pressed, break from the loop
